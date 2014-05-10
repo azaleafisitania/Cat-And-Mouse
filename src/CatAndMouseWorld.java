@@ -19,7 +19,7 @@ public class CatAndMouseWorld implements RLWorld{
 	double waitingReward;
 	public boolean[][] walls;
 
-	public CatAndMouseWorld(int x, int y, int numWalls) {
+	public CatAndMouseWorld(int x, int y, int numWalls, int numcats, int numches) {
 		bx = x;
 		by = y;
 		makeWalls(x,y,numWalls);

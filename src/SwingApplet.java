@@ -113,15 +113,17 @@ public class SwingApplet extends JApplet implements ActionListener,Runnable{
 		getContentPane().add(tabbedPane);
 	}
 
-	public void worldInit(int xdim, int ydim, int numwalls) { 
-		trainWorld = new CatAndMouseWorld(xdim, ydim,numwalls);
+	public void worldInit(int xdim, int ydim, int numwalls, int numcats, int numches) { 
+		trainWorld = new CatAndMouseWorld(xdim, ydim,numwalls,numcats,numches);
 		gameInit(xdim,ydim);
 	}
+	/*
 	public void worldInit(boolean[][] givenWalls) {
 		int xdim = givenWalls.length, ydim = givenWalls[0].length;
 		trainWorld = new CatAndMouseWorld(xdim, ydim,givenWalls);
 		gameInit(xdim,ydim);		
 	}
+	*/
 	private void gameInit(int xdim, int ydim) {
 		// disable this pane
 		tabbedPane.setEnabledAt(0,false);
@@ -278,20 +280,20 @@ public class SwingApplet extends JApplet implements ActionListener,Runnable{
 		startbutt.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e) {
 				// selected world type, choose action
-				if (sampleWorld) {
+				/*if (sampleWorld) {
 					worldInit(selectedWalls);
 				} else if (designWorld) {
 					// custom designed world
 				
-				} else {
+				} else {*/
 					// random world
 					worldInit(Integer.parseInt(cols.getText()),
 						Integer.parseInt(rows.getText()),
 						Integer.parseInt(obst.getText()),
 						Integer.parseInt(cats.getText()),
-						Integer.parseInt(ches.getText()),
+						Integer.parseInt(ches.getText())
 						);
-				}
+				/*}*/
 			}
 		});
 		worldPane.add(startbutt, BorderLayout.SOUTH);
@@ -301,7 +303,7 @@ public class SwingApplet extends JApplet implements ActionListener,Runnable{
 	Container customWorld() {
 		JPanel pane = new JPanel();
 		pane.setLayout(new BorderLayout());
-		
+		/*
 		JRadioButton random = new JRadioButton("Random World");
 		random.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e) {
@@ -313,7 +315,7 @@ public class SwingApplet extends JApplet implements ActionListener,Runnable{
 		});
 		worldSelGroup.add(random);
 		pane.add(random, BorderLayout.NORTH);
-		
+		*/
 		/*JRadioButton custom = new JRadioButton("Custom Design");
 		custom.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e) {
@@ -407,7 +409,7 @@ public class SwingApplet extends JApplet implements ActionListener,Runnable{
 		*/
 		// add random world option
 		pane.add(customWorld());
-		pane.setBorder(BorderFactory.createTitledBorder("Choose World"));
+		pane.setBorder(BorderFactory.createTitledBorder("Create World"));
 		return pane;
 	}
 	
