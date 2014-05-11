@@ -7,13 +7,13 @@ import java.util.*;
 public Class ReadPetaPelatihan {
 	public static void main(String[] args){
 		Scanner S = new Scanner(new File("petapelatihan.txt"));
-		int posisi;
 		try{
-			while (S.hasNext){
+			while S.hasNext(){
 				String line = s.nextLine();
 				String[] temp = s.split(" ");
+				String[] posisi = new String[temp.length];
 				for (int i=0; i<temp.length; i++){
-					posisi = Integer.parseInt(temp[i]);
+					posisi[i] = Integer.parseInt(temp[i]);
 				}	
 			}	
 		}
