@@ -5,12 +5,15 @@
 
 import javax.swing.*;
 import javax.swing.event.*;
+
 import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
 
+@SuppressWarnings("serial")
 public class SwingApplet extends JApplet implements ActionListener,Runnable{
-	static final int BW=300, BH=300, BX=10, BY=10, NUM_WALLS=20,NUM_KUCING=4,NUM_KEJU=2,SAMP_W = 100, SAMP_H = 100;
+	static final int BW=300, BH=300, BX=8, BY=8, NUM_WALLS=20,
+		SAMP_W = 100, SAMP_H = 100;
 	static final int DEF_EPOCHS = 50000;
 	static final long DELAY=500;
 	static int MAXX=400, MAXY=400;
@@ -24,12 +27,11 @@ public class SwingApplet extends JApplet implements ActionListener,Runnable{
 	Container instructions, playPanel, trainPanel, worldPanel;
 	
 	// world setting components
-	JTextField rows, cols, obst,kucing,keju;
+	JTextField rows, cols, obst, cats, ches;
 	sampleWorlds samples;
-	Reader rd;
 	boolean[][] selectedWalls;
 	ButtonGroup worldSelGroup;
-	boolean sampleWorld=true, designWorld=false,fileWorld=false;
+	boolean sampleWorld=true, designWorld=false;
 	
 	// instructions components
 	JLabel instructLabel, usageLabel;
@@ -37,9 +39,9 @@ public class SwingApplet extends JApplet implements ActionListener,Runnable{
 		USAGE_MESSAGE = "<html><p>You can train the agent by selecting the Train tab.  At <p>any time you can select the Play tab to see how <p>well the agent is performing!  Of course, the more <p>training, the better the chance the mouse <p>has of surviving :)";
 
 	// train panel components
-	public static final String START="S", CONT_CHECK="C", STOP="D";
+	public static final String START="S", CONT_CHECK="C";
 	final String SETTINGS_TEXT = "These settings adjust some of the internal workings of the reinforcement learning algorithm.",
-		SETTINGS_TEXT2 = "Please see the web pages for gifmore details on what the parameters do.";
+		SETTINGS_TEXT2 = "Please see the web pages for more details on what the parameters do.";
 	JTextField alpha, gamma, epsilon, epochs, penalty, reward;
 	JButton startTraining, stopTraining;
 	JRadioButton softmax, greedy, sarsa, qlearn;
@@ -47,14 +49,13 @@ public class SwingApplet extends JApplet implements ActionListener,Runnable{
 	JLabel learnEpochsDone;	
 	
 	// play panel components
-	JButton startbutt, stopbutt, pausebutt,drawbutt;
+	JButton startbutt, stopbutt, pausebutt;
 	boardPanel bp;
-	public int mousescore=0, catscore =0,totalscore=0;;
-	JLabel catscorelabel, mousescorelabel,totalscorelabel;
-	final String MS_TEXT = "Mouse Score:", CS_TEXT = "Cat Score:" ,TS_TEXT = "Total Score:";
+	public int mousescore=0, catscore =0;
+	JLabel catscorelabel, mousescorelabel;
+	final String MS_TEXT = "Mouse Score:", CS_TEXT = "Cat Score:";
 	JSlider speed, smoothSlider;
-	Image catImg;
-	Image[] mouseImg = new Image[8];
+	Image catImg, mouseImg;
 	chartPanel graphPanel;
 	JLabel winPerc;
 			
@@ -69,14 +70,7 @@ public class SwingApplet extends JApplet implements ActionListener,Runnable{
 	public void init() {
 		// load images
 		catImg = getImage(getCodeBase(), "cat.gif");
-		mouseImg[0] = getImage(getCodeBase(), "mouseUp.png");
-		mouseImg[1] = getImage(getCodeBase(), "mouseUpRight.png");
-		mouseImg[2] = getImage(getCodeBase(), "mouseRight.png");
-		mouseImg[3] = getImage(getCodeBase(), "mouseDownRight.png");
-		mouseImg[4] = getImage(getCodeBase(), "mouseDown.png");
-		mouseImg[5] = getImage(getCodeBase(), "mouseDownLeft.png");
-		mouseImg[6] = getImage(getCodeBase(), "mouseLeft.png");
-		mouseImg[7] = getImage(getCodeBase(), "mouseUpLeft.png");
+		mouseImg = getImage(getCodeBase(), "mouse.gif");
 		Image wallImg = getImage(getCodeBase(), "wall.gif");
 		Image cheeseImg = getImage(getCodeBase(), "cheese.gif");
 		Image floorImg = getImage(getCodeBase(), "floor.gif");
@@ -88,7 +82,7 @@ public class SwingApplet extends JApplet implements ActionListener,Runnable{
 
 		// set up board objects
 		cat = new boardObject(catImg);
-		mouse = new boardObject(mouseImg[0]);
+		mouse = new boardObject(mouseImg);
 		cheese = new boardObject(cheeseImg);
 		back = new boardObject(floorImg);
 		hole = new boardObject(Color.orange);
@@ -119,34 +113,22 @@ public class SwingApplet extends JApplet implements ActionListener,Runnable{
 		getContentPane().add(tabbedPane);
 	}
 
-	public void worldInit(int xdim, int ydim, int numwalls) {
-		Reader rd = new Reader();
-		rd.ReadDataKoordinat();
-		trainWorld = new CatAndMouseWorld(xdim, ydim,numwalls,rd.nCheese,rd.nCat,rd.set_posisi_train);
+	public void worldInit(int xdim, int ydim, int numwalls, int numcats, int numches) { 
+		trainWorld = new CatAndMouseWorld(xdim, ydim,numwalls,numcats,numches);
 		gameInit(xdim,ydim);
 	}
+	/*
 	public void worldInit(boolean[][] givenWalls) {
-		Reader rd = new Reader();
-		rd.ReadDataKoordinat();
 		int xdim = givenWalls.length, ydim = givenWalls[0].length;
-		trainWorld = new CatAndMouseWorld(xdim, ydim,givenWalls,rd.nCheese,rd.nCat,rd.set_posisi_train);
-		gameInit(xdim,ydim);
-		
+		trainWorld = new CatAndMouseWorld(xdim, ydim,givenWalls);
+		gameInit(xdim,ydim);		
 	}
-
-	public void worldInitLatihanPermainan(int xdim, int ydim, int numwalls,boolean[][] givenWalls, int kej,int kuc){
-		Reader rd = new Reader();
-		rd.ReadDataKoordinat();
-		int xdimlat = givenWalls.length, ydimlat = givenWalls[0].length;
-		trainWorld = new CatAndMouseWorld(xdimlat, ydimlat,givenWalls,rd.nCheese,rd.nCat,rd.set_posisi_train);
-		playWorld = new CatAndMouseWorld(xdim, ydim,numwalls,kej,kuc,rd.set_posisi_play);
-		gameInit(xdim,ydim);
-	}
+	*/
 	private void gameInit(int xdim, int ydim) {
 		// disable this pane
 		tabbedPane.setEnabledAt(0,false);
 		
-		//playWorld = new CatAndMouseWorld(xdim, ydim,trainWorld.walls);
+		playWorld = new CatAndMouseWorld(xdim, ydim,trainWorld.walls);
 
 		bp.setDimensions(xdim, ydim);
 		
@@ -182,7 +164,6 @@ public class SwingApplet extends JApplet implements ActionListener,Runnable{
 	public void updateBoard() {
 		// update score panels
 		mousescorelabel.setText(MS_TEXT+" "+Integer.toString(mousescore));
-		totalscorelabel.setText(TS_TEXT+" "+Integer.toString(totalscore));
 		catscorelabel.setText(CS_TEXT+" "+Integer.toString(catscore));
 		if (game.newInfo) {
 			updateScore();
@@ -206,14 +187,9 @@ public class SwingApplet extends JApplet implements ActionListener,Runnable{
 		}
 
 		// draw objects (cat over mouse over cheese)
-		for (int z=0; z<playWorld.nCheese;z++)
-			bp.setSquare(cheese, game.getCheese(z));
-		
-		mouse.setImage(mouseImg[game.getMouseOrientation()]);
-		
+		bp.setSquare(cheese, game.getCheese());
 		bp.setSquare(mouse, game.getMouse());
-		for (int z=0; z<playWorld.nCat;z++)
-			bp.setSquare(cat, game.getCat(z));
+		bp.setSquare(cat, game.getCat());
 		//bp.setSquare(hole, game.getHole());
 					
 		// display text representation
@@ -309,72 +285,37 @@ public class SwingApplet extends JApplet implements ActionListener,Runnable{
 				} else if (designWorld) {
 					// custom designed world
 				
-				}else if(fileWorld){
-					worldInit(selectedWalls);				
-				} else {
+				} else {*/
 					// random world
 					worldInit(Integer.parseInt(cols.getText()),
 						Integer.parseInt(rows.getText()),
-						Integer.parseInt(obst.getText()));
-				}*/
-				worldInitLatihanPermainan(Integer.parseInt(cols.getText()),
-						Integer.parseInt(rows.getText()),
-						Integer.parseInt(obst.getText()),selectedWalls,Integer.parseInt(keju.getText()),Integer.parseInt(kucing.getText()));
+						Integer.parseInt(obst.getText()),
+						Integer.parseInt(cats.getText()),
+						Integer.parseInt(ches.getText())
+						);
+				/*}*/
 			}
 		});
 		worldPane.add(startbutt, BorderLayout.SOUTH);
 		return worldPane;
 	}
 	
-
-	Container fileWorld(){
-		JPanel worldPane = new JPanel();
-		worldPane.setLayout(new BorderLayout());
-		rd = new Reader();
-		rd.ReadDataMap();
-		selectedWalls=rd.getFileMap();
-		JLabel fileW = new JLabel("Peta latihan");
-		/*fileW.addActionListener(new ActionListener(){
-			public void actionPerformed(ActionEvent e) {
-				// enable obstacles field
-				//obst.setEnabled(false);
-				designWorld=false;
-				sampleWorld=false;
-				selectedWalls=rd.getFileMap();
-				fileWorld=true;
-			}
-		});*/
-			boardPanel pic = new boardPanel(back, rd.getFileMap().length, rd.getFileMap()[0].length,SAMP_W, SAMP_H);
-			// add walls to panel
-			for (int x=0; x<rd.getFileMap().length; x++)
-				for (int y=0; y<rd.getFileMap()[x].length; y++)
-					if (rd.getFileMap()[x][y]) pic.setSquare(wall, x, y);
-			
-			//worldSelGroup.add(fileW); // add to button group
-			pic.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));			
-			worldPane.add(pic, BorderLayout.CENTER);
-		
-		worldPane.add(fileW, BorderLayout.NORTH);
-		return worldPane;
-
-	}
 	Container customWorld() {
 		JPanel pane = new JPanel();
 		pane.setLayout(new BorderLayout());
-		
-		JLabel random = new JLabel("Peta Permainan");
-		/*random.addActionListener(new ActionListener(){
+		/*
+		JRadioButton random = new JRadioButton("Random World");
+		random.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e) {
 				// enable obstacles field
-				//obst.setEnabled(true);
+				obst.setEnabled(true);
 				designWorld=false;
 				sampleWorld=false;
-				fileWorld=false;
 			}
-		});*/
-		//worldSelGroup.add(random);
+		});
+		worldSelGroup.add(random);
 		pane.add(random, BorderLayout.NORTH);
-		
+		*/
 		/*JRadioButton custom = new JRadioButton("Custom Design");
 		custom.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e) {
@@ -393,22 +334,22 @@ public class SwingApplet extends JApplet implements ActionListener,Runnable{
 		
 		//JPanel controls = new JPanel();
 		//controls.setLayout(new GridLayout(0,1));
-		rows = new JTextField(Integer.toString(BY), 60);
-		cols = new JTextField(Integer.toString(BX), 60);
-		obst = new JTextField(Integer.toString(NUM_WALLS), 60);
-		kucing = new JTextField(Integer.toString(NUM_KUCING), 60);
-		keju = new JTextField(Integer.toString(NUM_KEJU), 60);
+		rows = new JTextField(Integer.toString(BY), 20);
+		cols = new JTextField(Integer.toString(BX), 20);
+		obst = new JTextField(Integer.toString(NUM_WALLS), 20);
+		cats = new JTextField(Integer.toString(NUM_WALLS), 20);
+		ches = new JTextField(Integer.toString(NUM_WALLS), 20);
 		
-		labelpane.add(new JLabel("Baris:",JLabel.LEFT));
+		labelpane.add(new JLabel("Rows : ",JLabel.RIGHT));
 		labelpane.add(rows);
-		labelpane.add(new JLabel("Kolom:",JLabel.LEFT));
+		labelpane.add(new JLabel("Columns : ",JLabel.RIGHT));
 		labelpane.add(cols);
-		labelpane.add(new JLabel("Tembok:",JLabel.LEFT));
+		labelpane.add(new JLabel("Obstacles : ",JLabel.RIGHT));
 		labelpane.add(obst);
-		labelpane.add(new JLabel("Kucing:",JLabel.LEFT));
-		labelpane.add(kucing);
-		labelpane.add(new JLabel("Keju:",JLabel.LEFT));
-		labelpane.add(keju);
+		labelpane.add(new JLabel("Cats : ",JLabel.RIGHT));
+		labelpane.add(cats);
+		labelpane.add(new JLabel("Cheeses : ",JLabel.RIGHT));
+		labelpane.add(ches);
 		
 		//labelpane.setBorder(BorderFactory.createTitledBorder("Custom World"));
 		//labelpane.add(random);
@@ -424,9 +365,10 @@ public class SwingApplet extends JApplet implements ActionListener,Runnable{
 	
 	Container chooseWorld() {
 		JPanel pane = new JPanel();
-		pane.setLayout(new GridLayout(0,2));
+		pane.setLayout(new GridLayout(0,3));
 
-		/*// grab each sample
+		// grab each sample
+		/*
 		samples = new sampleWorlds();
 		for (int i=0; i<samples.numSamples(); i++) {
 			JPanel thisPanel = new JPanel();
@@ -452,7 +394,7 @@ public class SwingApplet extends JApplet implements ActionListener,Runnable{
 			boardPanel pic = new boardPanel(back, w.length, w[0].length,SAMP_W, SAMP_H);
 			// add walls to panel
 			for (int x=0; x<w.length; x++)
-				for (int y=0; y<w[x].length; y++)
+				for (int y=0; y<w.length; y++)
 					if (w[x][y]) pic.setSquare(wall, x, y);
 			
 			worldSelGroup.add(b); // add to button group
@@ -464,12 +406,10 @@ public class SwingApplet extends JApplet implements ActionListener,Runnable{
 			
 			pane.add(thisPanel);
 		}
-*/
+		*/
 		// add random world option
 		pane.add(customWorld());
-		// add file world option
-		pane.add(fileWorld());
-		pane.setBorder(BorderFactory.createTitledBorder("World"));
+		pane.setBorder(BorderFactory.createTitledBorder("Create World"));
 		return pane;
 	}
 	
@@ -548,19 +488,7 @@ public class SwingApplet extends JApplet implements ActionListener,Runnable{
 		JPanel actionButtons = new JPanel();
 		actionButtons.setLayout(new GridLayout(1,0));
 		softmax = new JRadioButton("Softmax");
-		softmax.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				// set game to use greedy mouse
-				rl.setActionSelection(2);
-			}
-		});
 		greedy = new JRadioButton("Greedy",true);
-		greedy.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				// set game to use greedy mouse
-				rl.setActionSelection(1);
-			}
-		});
 		ButtonGroup actionButts = new ButtonGroup();
 		actionButts.add(softmax);
 		actionButts.add(greedy);
@@ -570,19 +498,7 @@ public class SwingApplet extends JApplet implements ActionListener,Runnable{
 		JPanel learnButtons = new JPanel();
 		learnButtons.setLayout(new GridLayout(1,0));
 		sarsa = new JRadioButton("SARSA");
-		sarsa.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				// set game to use greedy mouse
-				rl.setLearningMethod(2);
-			}
-		});
 		qlearn = new JRadioButton("Q-Learning",true);
-		qlearn.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				// set game to use greedy mouse
-				rl.setLearningMethod(1);
-			}
-		});
 		ButtonGroup learnButts = new ButtonGroup();
 		learnButts.add(sarsa);
 		learnButts.add(qlearn);
@@ -700,10 +616,6 @@ public class SwingApplet extends JApplet implements ActionListener,Runnable{
 		startbutt.setActionCommand(START);
 		startbutt.addActionListener(this);
 		
-		/*drawbutt = new JButton("Draw");
-		drawbutt.setActionCommand("Draw");
-		drawbutt.addActionListener(this);*/
-		
 		JCheckBox continuous = new JCheckBox("Continuous", true);
 		continuous.setActionCommand(CONT_CHECK);
 		continuous.addItemListener(new ItemListener() {
@@ -737,7 +649,6 @@ public class SwingApplet extends JApplet implements ActionListener,Runnable{
 
 		// add to grid (l-r t-b)
 		playPanel.add(startbutt);
-		//playPanel.add(drawbutt);
 		playPanel.add(smart);
 		playPanel.add(continuous);
 		playPanel.add(greedy);
@@ -749,13 +660,12 @@ public class SwingApplet extends JApplet implements ActionListener,Runnable{
 	Container scorePanel() {
 		JPanel scorePane = new JPanel();
 		//scorePane.setLayout(new BoxLayout(scorePane, BoxLayout.Y_AXIS));
-		scorePane.setLayout(new GridLayout(0,1));
+		scorePane.setLayout(new GridLayout(0,2));
 		
 		// score labels
 		ImageIcon cat = new ImageIcon(catImg);
-		ImageIcon mouse = new ImageIcon(mouseImg[0]);
-		mousescorelabel = new JLabel(MS_TEXT, JLabel.RIGHT);		
-		totalscorelabel = new JLabel(TS_TEXT, JLabel.RIGHT);
+		ImageIcon mouse = new ImageIcon(mouseImg);
+		mousescorelabel = new JLabel(MS_TEXT, mouse, JLabel.RIGHT);
 		catscorelabel = new JLabel(CS_TEXT, cat, JLabel.RIGHT);
 
 		// reset scores
@@ -764,8 +674,7 @@ public class SwingApplet extends JApplet implements ActionListener,Runnable{
 		JButton reset = new JButton("Reset Scores");
 		reset.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e) {
-				playWorld.mousescore = 0;
-				totalscore=0;
+				mousescore = 0;
 				catscore = 0;
 				updateBoard();
 			}			
@@ -777,9 +686,8 @@ public class SwingApplet extends JApplet implements ActionListener,Runnable{
 		//scorePane.add(hbox);
 
 		scorePane.add(mousescorelabel);
-		scorePane.add(totalscorelabel);
 		scorePane.add(winPerc);
-		//scorePane.add(catscorelabel);
+		scorePane.add(catscorelabel);
 		scorePane.add(reset);
 		
 		scorePane.setBorder(BorderFactory.createTitledBorder("Scores"));
@@ -826,27 +734,12 @@ public class SwingApplet extends JApplet implements ActionListener,Runnable{
 
 	/********** Action handling methods ****************/
 	public void actionPerformed(ActionEvent e) {
-		int from = 0;
 		if (e.getActionCommand().equals(START)) {
 			game.gameOn = true;
-			from = 1;
-			startbutt.setText("Stop");
-			game.stopPressed = false;
-		}
-		else if (e.getActionCommand().equals(STOP)) {
-			game.gameOn = false;
-			from = 2;
-			startbutt.setText("Start");
-			game.stopPressed = true;
-		}
-		else if (e.getActionCommand().equals("Draw")) {
+		} else if (e.getActionCommand().equals("Draw")) {
 			System.out.println("draw test");
 			updateBoard();
 		}
-		if (from == 1)
-			startbutt.setActionCommand(STOP);
-		else if (from == 2)
-			startbutt.setActionCommand(START);
 	}
 	/********** Action handling methods ****************/
 }

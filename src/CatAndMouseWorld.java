@@ -1,84 +1,133 @@
 import java.awt.*;
-
+import java.util.ArrayList;
+import java.util.Random;
 public class CatAndMouseWorld implements RLWorld{
-	public int bx, by;
-	//nyimpen posisi tikus sebelum nabrak
-    public int tempX,tempY;
-	public int mx, my;
-	public int cx, cy;
-	public int chx, chy;
+	public int bx, by;	// boundary peta
+
+	public int mx, my;	// kordinat mouse
+	public int mo;		// arah mouse, atas=0 kanan-atas=1 kanan=2 dst..
+	
+	public int[] cx, cy;	// kordinat2 kucing
+	public int[] chx, chy;	// kordinat2 keju
 	public int hx, hy;
-	public boolean gotCheese = false;
 	
-	public int catscore = 0, mousescore = 0;
-	public int cheeseReward=50, deathPenalty=100;
+	public int catscore = 0, mousescore = 0;		// skor awal tikus dan kucing
+	public int cheeseReward=50, deathPenalty=100;	// nilai reward training
+
 	
-	static final int NUM_OBJECTS=6, NUM_ACTIONS=8, WALL_TRIALS=100;
+	public int view_limit = 10;						// batas penglihatan tikus
+	public ArrayList<Integer> setPos;				// set posisi dari file eksternal
+	public int nCat = 1;							// jumlah kucing
+	public int nCheese = 1;							// jumlah keju
+	public int curSetPos = 0;						// kursor di ArrayList setPos
+	static final int NUM_OBJECTS=4, NUM_ACTIONS=3, WALL_TRIALS=100;	// banyak jenis halangan, banyak aksi
 	static final double INIT_VALS=0;
 		
-	int[] stateArray;
-	double waitingReward;
-	public boolean[][] walls;
+	int[] stateArray;				// array untuk menyimpan state
+	double waitingReward;			// reward yang dicatat setelah suatu aksi dilakukan
+	public boolean[][] walls;		// matriks yang menyimpan posisi walls
+	
+	public int turn=0;				// variabel untuk greedy tikus
 
-	public CatAndMouseWorld(int x, int y, int numWalls, int numcats, int numches) {
+	public CatAndMouseWorld(int x, int y, int numWalls, int ncheese, int ncat, ArrayList<Integer> setPoss) {
 		bx = x;
 		by = y;
+		cheeseReward=bx+by;
+		deathPenalty=bx+by;
+		Reader rd = new Reader();
+		rd.ReadDataKoordinat();
+		view_limit = rd.view_limit;
+		nCat = ncat;
+		nCheese = ncheese;
+		chx =  new int[nCheese];
+		chy = new int[nCheese];
+		cx =  new int[nCat];
+		cy = new int[nCat];
+		setPos = setPoss;
+		System.out.println("train : "+setPos.size());
 		makeWalls(x,y,numWalls);
-		
 		resetState();
 	}
 	
-	public CatAndMouseWorld(int x, int y, boolean[][] newwalls) {
+	public CatAndMouseWorld(int x, int y, boolean[][] newwalls, int ncheese, int ncat, ArrayList<Integer> setPoss) {
 		bx = x;
 		by = y;
-		
+		cheeseReward=bx+by;
+		deathPenalty=bx+by;	
+		Reader rd = new Reader();
+		rd.ReadDataKoordinat();
+		view_limit = rd.view_limit;
+		nCat = ncat;
+		nCheese = ncheese;
+		chx =  new int[nCheese];
+		chy = new int[nCheese];
+		cx =  new int[nCat];
+		cy = new int[nCat];
+		setPos = setPoss;
+		System.out.println("play : "+setPos.size());
 		walls = newwalls;
-		
 		resetState();
 	}
 
+	// getter setter
+	public void setNCat(int ncat){
+		nCat=ncat;
+	}
+	public int getNCat(){
+		return nCat;
+	}
+	public void setNCheese(int ncheese){
+		nCheese=ncheese;
+	}
+	public int getNCheese(){
+		return nCheese;
+	}
+	
 	/******* RLWorld interface functions ***********/
 	public int[] getDimension() { 
-		int[] retDim = new int[NUM_OBJECTS+1];
+		int[] retDim = new int[view_limit+1];
 		int i;
-		for (i=0; i<NUM_OBJECTS;) {
-			retDim[i++] = bx;
-			retDim[i++] = by;
+		for (i=0; i<view_limit;) {
+			retDim[i++] = NUM_OBJECTS;	// jenis halangan
+			
 		}
-		retDim[i] = NUM_ACTIONS;
+		retDim[i] = NUM_ACTIONS;		// jenis aksi
 		
 		return retDim;
 	}
 		
 	// given action determine next state
 	public int[] getNextState(int action) {
-		// action is mouse action:  0=u 1=ur 2=r 3=dr ... 7=ul
+		// action is mouse action:  0=maju 1=putar kanan 2=putar kiri
 		Dimension d = getCoords(action);
 		int ax=d.width, ay=d.height;
+		boolean hitWall = false;
 		if (legal(ax,ay)) {
 			// move agent
 			mx = ax; my = ay;
-		} else {
-			//System.err.println("Illegal action: "+action);
+		}
+		else {
+			hitWall = true;
+			//System.out.println("nabrak");
 		}
 		// update world
-		moveCat();
-		waitingReward = calcReward();
-		
-		// if mouse has cheese, relocate cheese
-		if ((mx==chx) && (my==chy)) {
-			d = getRandomPos();
-			chx = d.width;
-			chy = d.height;
+		// moveCat();
+		if (hitWall){
+			mousescore -= 2;
+			waitingReward = -2;
+		}
+		else{
+			waitingReward = calcReward();
 		}
 		
-		/*// if cat has mouse, relocate mouse
-		if ((mx==cx) && (my==cy)) {
-			d = getRandomPos();
-			mx = d.width;
-			my = d.height;
-		}*/
-
+		// if mouse has cheese, delete cheese
+		for (int z =0 ;z<nCheese;z++){
+			if ((mx==chx[z]) && (my==chy[z])) {
+				chx[z] = -1;
+				chy[z] = -1;
+			}
+		}
+		
 		return getState();
 	}
 	
@@ -93,34 +142,40 @@ public class CatAndMouseWorld implements RLWorld{
 	Dimension getCoords(int action) {
 		int ax=mx, ay=my;
 		switch(action) {
-			case 0: ay = my - 1; break;
-			case 1: ay = my - 1; ax = mx + 1; break;
-			case 2: ax = mx + 1; break;
-			case 3: ay = my + 1; ax = mx + 1; break;
-			case 4: ay = my + 1; break;
-			case 5: ay = my + 1; ax = mx - 1; break;
-			case 6: ax = mx - 1; break;
-			case 7: ay = my - 1; ax = mx - 1; break;
-			default: //System.err.println("Invalid action: "+action);
+			case 0:
+				//System.out.println("maju");
+				switch(mo) {
+					case 0: ay = my - 1; break;
+					case 1: ay = my - 1; ax = mx + 1; break;
+					case 2: ax = mx + 1; break;
+					case 3: ay = my + 1; ax = mx + 1; break;
+					case 4: ay = my + 1; break;
+					case 5: ay = my + 1; ax = mx - 1; break;
+					case 6: ax = mx - 1; break;
+					case 7: ay = my - 1; ax = mx - 1; break;
+				}
+			break;
+			case 1:
+				//System.out.println("putar kanan");
+				mo++;
+				if (mo>=8) mo=0;
+			break;
+			case 2:
+				//System.out.println("putar kiri");
+				mo--;
+				if (mo<=-1) mo=7;
+			break;
+			default: //System.out.println("Invalid action: "+action);
 		}
 		return new Dimension(ax, ay);
-	}
-
-	// find action value given x,y=0,+-1
-	int getAction(int x, int y) {
-		int[][] vals={{7,0,1},
-		              {6,0,2},
-					  {5,4,3}};
-		if ((x<-1) || (x>1) || (y<-1) || (y>1) || ((y==0)&&(x==0))) return -1;
-		int retVal = vals[y+1][x+1];
-		return retVal;
 	}
 
 	public boolean endState() { return endGame(); }
 	public int[] resetState() { 
 		catscore = 0;
 		mousescore = 0;
-		setRandomPos(); 
+		mo = 0;
+		setPos();
 		return getState();
 	}
 		
@@ -129,68 +184,203 @@ public class CatAndMouseWorld implements RLWorld{
 	
 	public int[] getState() {
 		// translates current state into int array
-		stateArray = new int[NUM_OBJECTS];
-		stateArray[0] = mx;
-		stateArray[1] = my;
-		stateArray[2] = cx;
-		stateArray[3] = cy;
-		stateArray[4] = chx;
-		stateArray[5] = chy;
+		stateArray = new int[view_limit];
+		int obsX = mx;		// kordinat x obstacle yg akan dicek
+		int obsY = my;		// kordinat y obstacle yg akan dicek
+		int dX;				// perpindahan x obstacle
+		int dY;				// perpindahan y obstace
+		int obs = 4;
+		// tentukan perpindahan berdasarkan arah mouse
+		switch(mo){
+			case 0 :	dX = 0;
+						dY = -1;
+						break;
+			case 1 :	dX = 1;
+						dY = -1;
+						break;
+			case 2 :	dX = 1;
+						dY = 0;
+						break;
+			case 3 :	dX = 1;
+						dY = 1;
+						break;
+			case 4 :	dX = 0;
+						dY = 1;
+						break;
+			case 5 :	dX = -1;
+						dY = 1;
+						break;
+			case 6 : 	dX = -1;
+						dY = 0;
+						break;
+			case 7 :	dX = -1;
+						dY = -1;
+						break;
+			default :	dX = 0;
+						dY = 0;
+						break;
+		}
+		obsX += dX;
+		obsY += dY;
+		for (int i =0;i<view_limit;i++){
+			if (obsX<0 || obsX>=bx ||obsY<0 || obsY>=by){
+				obs = 0;
+			}
+			else {
+				if (walls[obsX][obsY])
+					obs = 0;	// halangan = wall
+				else
+					obs = 3;	// halangan = kosong
+					
+				for (int z=0;z<nCat;z++){
+					if(obsX==cx[z] && obsY==cy[z])
+						obs = 1;	// halangan = kucing
+				}
+				for (int z=0;z<nCheese;z++){
+					if (obsX==chx[z] && obsY==chy[z])
+						obs = 2;	// halangan = keju
+				}
+			}
+			stateArray[i] = obs;
+			obsX += dX;
+			obsY += dY;
+		}
 		return stateArray;
 	}
 
 	public double calcReward() {
 		double newReward = 0;
-		if ((mx==chx)&&(my==chy)) {
-			mousescore++;
-			newReward += cheeseReward;
+		boolean kosong = true;
+		for (int j=0; j<nCheese; j++){
+			if ((mx==chx[j])&&(my==chy[j])) {
+				mousescore += cheeseReward;
+				newReward += cheeseReward;
+				kosong = false;
+			}
 		}
-		if ((cx==mx) && (cy==my)) {
-			catscore++;
-			newReward -= deathPenalty;
+		for (int j=0; j<nCat; j++){
+			if ((cx[j]==mx) && (cy[j]==my)) {
+				catscore++;
+				mousescore -= deathPenalty;
+				newReward -= deathPenalty;
+				kosong = false;
+			}
 		}
 		
-		//kalau posisi lagi di tembok berarti dimundurin dan reward nya di kurangin
-		if(walls[mx][my])
-        {
-            newReward-=10;
-            mx=tempX;
-            my=tempY;
-            System.out.println("menabrak dinding reward dikurangi\n");
-        }
-		//if ((mx==hx)&&(my==hy)&&(gotCheese)) newReward += 100;
+		if (kosong){
+			mousescore--;
+			newReward--;
+		}
+		
 		return newReward;		
 	}
 	
-	public void setRandomPos() {
-		Dimension d = getRandomPos();
-		cx = d.width;
-		cy = d.height;
-		d = getRandomPos();
-		mx = d.width;
-		my = d.height;
-		d = getRandomPos();
-		chx = d.width;
-		chy = d.height;
-		d = getRandomPos();
-		hx = d.width;
-		hy = d.height;
+	public void setPos() {
+		// Buat kopian matriks walls
+		boolean[][] isi = new boolean[bx][by];
+		for (int i=0; i<bx; i++) {
+			for (int j=0; j<by; j++) {
+				isi[i][j] = walls[i][j];
+			}
+		}
+		
+		// Tentuin posisi mouse
+		int x, y;
+		if (curSetPos >= setPos.size()) {
+			curSetPos = 0;
+		}
+		x = setPos.get(curSetPos)-1;
+		curSetPos++;
+		y = setPos.get(curSetPos)-1;
+		curSetPos++;
+		if (curSetPos >= setPos.size()) {
+			curSetPos = 0;
+		}
+		while (x>=bx || y>=by || isi[x][y]) {
+			x = setPos.get(curSetPos)-1;
+			curSetPos++;
+			y = setPos.get(curSetPos)-1;
+			curSetPos++;
+			if (curSetPos >= setPos.size()) 
+				curSetPos = 0;
+		}
+		mx = x;
+		my = y;
+		isi[mx][my] = true;
+		
+		// Tentuin posisi kucing
+		for (int z = 0;z<nCat;z++){
+			x = setPos.get(curSetPos)-1;
+			curSetPos++;
+			y = setPos.get(curSetPos)-1;
+			curSetPos++;
+			if (curSetPos >= setPos.size()) {
+				curSetPos = 0;
+			}
+			while ( x>=bx || y>=by || isi[x][y]) {
+				x = setPos.get(curSetPos)-1;
+				curSetPos++;
+				y = setPos.get(curSetPos)-1;
+				curSetPos++;
+				if (curSetPos >= setPos.size()) {
+					curSetPos = 0;
+				}
+			}
+			cx[z] = x;
+			cy[z] = y;
+			isi[cx[z]][cy[z]] = true;
+		}
+		
+		// Tentuin posisi keju
+		for (int z = 0;z<nCheese;z++){			
+			x = setPos.get(curSetPos)-1;
+			curSetPos++;
+			y = setPos.get(curSetPos)-1;
+			curSetPos++;
+			if (curSetPos >= setPos.size()) 
+				curSetPos = 0;
+			while (x>=bx || y>=by || isi[x][y]) {
+				x = setPos.get(curSetPos)-1;
+				curSetPos++;
+				y = setPos.get(curSetPos)-1;
+				curSetPos++;
+				if (curSetPos >= setPos.size()) {
+					curSetPos = 0;
+				}
+			}
+			chx[z] = x;
+			chy[z] = y;
+			isi[chx[z]][chy[z]] = true;
+		}
 	}
 
 	boolean legal(int x, int y) {
-		return ((x>=0) && (x<bx) && (y>=0) && (y<by));
+		return ((x>=0) && (x<bx) && (y>=0) && (y<by)) && (!walls[x][y]);
 	}
 
 	boolean endGame() {
-		//return (((mx==hx)&&(my==hy)&& gotCheese) || ((cx==mx) && (cy==my)));
-		return ((cx==mx) && (cy==my));
+		// Cek tikus mati/ga
+		boolean mouseDie = false;
+		for (int i=0; i<nCat; i++) {
+			if (mx == cx[i] && my == cy[i]) {
+				return true;
+			}
+		}
+		// Cek keju abis
+		boolean cheeseGone = true;
+		for (int i=0; i<nCheese; i++) {
+			if (chx[i] != -1 || chy[i] != -1) {
+				return false;
+			}
+		}
+		return (mouseDie || cheeseGone);
 	}
 
 	Dimension getRandomPos() {
 		int nx, ny;
 		nx = (int)(Math.random() * bx);
 		ny = (int)(Math.random() * by);
-		for(int trials=0; (!legal(nx,ny) || walls[nx][ny]) && (trials < WALL_TRIALS); trials++){
+		for(int trials=0; (!legal(nx,ny)) && (trials < WALL_TRIALS); trials++){
 			nx = (int)(Math.random() * bx);
 			ny = (int)(Math.random() * by);
 		}
@@ -198,44 +388,48 @@ public class CatAndMouseWorld implements RLWorld{
 	}
 	
 	/******** heuristic functions ***********/
-	Dimension getNewPos(int x, int y, int tx, int ty) {
-		int ax=x, ay=y;
-		
-		if (tx==x) ax = x;
- 		else ax += (tx - x)/Math.abs(tx-x); // +/- 1 or 0
-		if (ty==y) ay = y;
- 		else ay += (ty - y)/Math.abs(ty-y); // +/- 1 or 0
-		
-		// check if move legal	
-		if (legal(ax, ay)&& !walls[ax][ay]) return new Dimension(ax, ay);
-		
-		// not legal, make random move
-		while(true) {
-			// will definitely exit if 0,0
-			ax=x; ay=y;
-			ax += 1-(int) (Math.random()*3);
-			ay += 1-(int) (Math.random()*3);
-			
-			//System.out.println("old:"+x+","+y+" try:"+ax+","+ay);
-			if (legal(ax,ay) && !walls[ax][ay]) return new Dimension(ax,ay);
-		}
-	}
-
-	void moveCat() {
-		Dimension newPos = getNewPos(cx, cy, mx, my);
-		cx = newPos.width;
-		cy = newPos.height;		
-	}
-
-	void moveMouse() {
-		Dimension newPos = getNewPos(mx, my, chx, chy);
-		mx = newPos.width;
-		my = newPos.height;
-	}
 	
-	int mouseAction() {
-		Dimension newPos = getNewPos(mx, my, chx, chy);
-		return getAction(newPos.width-mx,newPos.height-my);
+	int mouseAction() { // action greedy
+		int act;
+		int i;
+		boolean adaKeju=false;
+		int[] stateTemp = new int[view_limit];
+		stateTemp = getState();
+		for (i=0;i<view_limit;i++){
+			if (stateTemp[i]==2){
+				adaKeju=true;
+				break;
+			}
+		}
+		while(i>0 && i<view_limit){
+			i--;
+			if (stateTemp[i]!=3){
+				i=-100;
+				break;
+			}		
+		}
+		if(adaKeju && i!=-100){
+			act=0;
+		}else{
+			if (turn>=8){
+				if (!(stateTemp[0]==0 || stateTemp[0]==1)){
+					act = 0;
+					turn=0;
+				}
+				else {
+					act = (int)(Math.random() * 3);
+					while (act==0 ){
+						act = (int)(Math.random() * 3);
+					}
+				}
+			}else{
+				act=1; // muter ke kanan terus
+				turn++;
+			}
+		}
+		
+		
+		return act;
 	}
 	/******** end heuristic functions ***********/
 
@@ -268,7 +462,7 @@ public class CatAndMouseWorld implements RLWorld{
 					continue;
 				}
 				
-				
+				//System.out.println("w & h = " + d.width + " " + d.height);
 				walls[d.width][d.height] = true;
 			}
 			

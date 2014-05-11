@@ -30,7 +30,7 @@ public class RLController extends Thread {
 						epochsdone++;
 						learner.runEpoch();
 						
-						//if (epochswaiting % UPDATE_EPOCHS == 0) 
+						if (epochswaiting % UPDATE_EPOCHS == 0) 
 							SwingUtilities.invokeLater(a);
 					}
 					totaldone += epochsdone;

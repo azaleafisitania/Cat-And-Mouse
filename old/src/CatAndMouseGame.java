@@ -8,13 +8,12 @@ public class CatAndMouseGame extends Thread {
 	CatAndMouseWorld world;
 	static final int GREEDY=0, SMART=1; // type of mouse to use
 	int mousetype = SMART;
-	int episode = 0;
-	boolean stopPressed = false;
 	
 	public boolean gameOn = false, single=false, gameActive, newInfo = false;
 	
 	public CatAndMouseGame(SwingApplet s, long delay, CatAndMouseWorld w, RLPolicy policy) {
-		world = w;		
+		world = w;
+		
 		a=s;
 		this.delay = delay;
 		this.policy = policy;
@@ -28,9 +27,8 @@ public class CatAndMouseGame extends Thread {
 			while(true) {
 				while(gameOn) {
 					gameActive = true;
-					//resetGame();
+					resetGame();
 					SwingUtilities.invokeLater(a); // draw initial state
-					if (episode == 0) a.totalscore = 0; 
 					runGame();
 					gameActive = false;
 					newInfo = true;
@@ -46,7 +44,7 @@ public class CatAndMouseGame extends Thread {
 	}
 	
 	public void runGame() {
-		while(!world.endGame() && !stopPressed) {
+		while(!world.endGame()) {
 			//System.out.println("Game playing. Making move.");
 			int action=-1;
 			if (mousetype == GREEDY) {
@@ -56,51 +54,22 @@ public class CatAndMouseGame extends Thread {
 			} else {
 				System.err.println("Invalid mouse type:"+mousetype);
 			}
-									
 			world.getNextState(action);
-			a.mousescore = world.mousescore;
-			a.catscore = world.catscore;
+
 			//a.updateBoard();
 			SwingUtilities.invokeLater(a);
 				
-			
 			try {
 				sleep(delay);
 			} catch (InterruptedException e) {
 				System.out.println("interrupted.");
 			}
-			
 		}
-		a.totalscore=a.totalscore + a.mousescore;
-		world.mousescore = 0;
-		a.mousescore= world.mousescore;
-		SwingUtilities.invokeLater(a);
-		episode++;
-		// System.out.println("episode " + episode + " baru selesai");
+		a.mousescore += world.mousescore;
+		a.catscore += world.catscore;
+		
 		// turn off gameOn flag if only single game
-		
-		if (single){
-			gameOn = false;
-		
-		}
-		else if (!stopPressed && episode == 10) {
-			gameOn = false;			
-			episode = 0;
-			world.curSetPos=0;
-			a.startbutt.setText("Start");
-			a.startbutt.setActionCommand("S");
-			//resetGame();			
-		}
-		else if (stopPressed)
-		{
-			a.mousescore = 0;
-			a.catscore = 0;
-			a.totalscore = 0;
-			world.curSetPos=0;
-			episode = 0;			
-			//resetGame();
-		}
-		resetGame();
+		if (single) gameOn = false;
 	}
 	
 	public void interrupt() {
@@ -113,16 +82,15 @@ public class CatAndMouseGame extends Thread {
 	public void setPolicy(RLPolicy p) {	policy = p; }
 	
 	public Dimension getMouse() { return new Dimension(world.mx, world.my); }
-	public int getMouseOrientation(){ return world.mo;}
-	public Dimension getCat(int i) { return new Dimension(world.cx[i], world.cy[i]); }
-	public Dimension getCheese(int i) { return new Dimension(world.chx[i], world.chy[i]); }
+	public Dimension getCat() { return new Dimension(world.cx, world.cy); }
+	public Dimension getCheese() { return new Dimension(world.chx, world.chy); }
 	public Dimension getHole() { return new Dimension(world.hx, world.hy); }
 	public boolean[][] getWalls() { return world.walls; }
 	
-	/*public void makeMove() {
+	public void makeMove() {
 		world.moveMouse();
 		world.moveCat();
-	}*/
+	}
 
 	public void resetGame() {
 		world.resetState();

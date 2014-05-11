@@ -32,7 +32,7 @@ public class RLPolicy {
 	int actualdim = 0;
 	int state[] = new int[dimSize.length - 1];
 
-	//System.out.println( "States: " + states ); 
+	System.out.println( "States: " + states ); 
 	for( int j = 0 ; j < states ; j++ ) {
 	    
 	    qValues = (double[]) myQValues( state );
@@ -141,9 +141,8 @@ public class RLPolicy {
 	qValues = myQValues( state );
 	
 	for( int action = 0 ; action < qValues.length ; action++ ) {
-	   // System.out.println( "STATE: [" + state[0] + "," + state[1] + "]" );
-		//System.out.println( "STATE: [" + state[0] + "," + state[1] +","+state[2]+ ","+state[3]+"]" ); 
-	   // System.out.println( "action:qValue, maxQ " + action + ":" + qValues[action] + "," + maxQ );
+	    //System.out.println( "STATE: [" + state[0] + "," + state[1] + "]" ); 
+	    //System.out.println( "action:qValue, maxQ " + action + ":" + qValues[action] + "," + maxQ );
 	    
 	    if( qValues[action] > maxQ ) {
 		selectedAction = action;

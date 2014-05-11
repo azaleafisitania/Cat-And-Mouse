@@ -109,9 +109,6 @@ public class RLearner {
 		    
 			    if( ! running ) break;
 					action = selectAction( state );
-					//if (state[0]==0 && action==0)
-						//System.out.println("newQ : ");
-				//	System.out.println("selected : "+action);	
 		    		newstate = thisWorld.getNextState( action );
 				    reward = thisWorld.getReward();
 		    
@@ -120,7 +117,6 @@ public class RLearner {
 
 				    // Calculate new Value for Q
 				    new_Q = this_Q + alpha * ( reward + gamma * max_Q - this_Q );
-					
 				    policy.setQValue( state, action, new_Q );
 
 				    // Set state to the new state.
@@ -149,9 +145,9 @@ public class RLearner {
 		    
 		    this_Q = policy.getQValue( state, action );
 		    next_Q = policy.getQValue( newstate, newaction );
-		   
+		    
 		    new_Q = this_Q + alpha * ( reward + gamma * next_Q - this_Q );
-			
+		    
 		    policy.setQValue( state, action, new_Q );
 		    
 		    // Set state to the new state and action to the new action.
@@ -276,11 +272,11 @@ public class RLearner {
 	    }
 	    
 	    // Choose new action if not valid.
-	/*    while( ! thisWorld.validAction( selectedAction ) ) {
+	    while( ! thisWorld.validAction( selectedAction ) ) {
 		
 		selectedAction = (int) (Math.random() * qValues.length);
 		// System.out.println( "Invalid action, new one:" + selectedAction);
-	    }*/
+	    }
 	    
 	    break;
 	}
@@ -295,31 +291,28 @@ public class RLearner {
 		prob[action] = Math.exp( qValues[action] / temp );
 		sumProb += prob[action];
 	    }
-	    for( action = 0 ; action < qValues.length ; action++ ){
-			prob[action] = prob[action] / sumProb;
-			//System.out.println("prob : "+prob[action]);
-		}
+	    for( action = 0 ; action < qValues.length ; action++ )
+		prob[action] = prob[action] / sumProb;
 	    
-	  //  boolean valid = false;
+	    boolean valid = false;
 	    double rndValue;
 	    double offset;
 	    
-	  //  while( ! valid ) {
+	    while( ! valid ) {
 		
 		rndValue = Math.random();
 		offset = 0;
 		
 		for( action = 0 ; action < qValues.length ; action++ ) {
 		    if( rndValue > offset && rndValue < offset + prob[action] )
-				selectedAction = action;
+			selectedAction = action;
 		    offset += prob[action];
-			//System.out.println(action);
 		    // System.out.println( "Action " + action + " chosen with " + prob[action] );
 		}
-		System.out.println("selected : "+selectedAction);
-		//if( thisWorld.validAction( selectedAction ) )
-		//    valid = true;
-	  //  }
+
+		if( thisWorld.validAction( selectedAction ) )
+		    valid = true;
+	    }
 	    break;
 	    
 	}
