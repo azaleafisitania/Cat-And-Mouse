@@ -2,7 +2,8 @@ import java.awt.*;
 
 public class CatAndMouseWorld implements RLWorld{
 	public int bx, by;
-
+	//nyimpen posisi tikus sebelum nabrak
+    public int tempX,tempY;
 	public int mx, my;
 	public int cx, cy;
 	public int chx, chy;
@@ -148,6 +149,15 @@ public class CatAndMouseWorld implements RLWorld{
 			catscore++;
 			newReward -= deathPenalty;
 		}
+		
+		//kalau posisi lagi di tembok berarti dimundurin dan reward nya di kurangin
+		if(walls[mx][my])
+        {
+            newReward-=10;
+            mx=tempX;
+            my=tempY;
+            System.out.println("menabrak dinding reward dikurangi\n");
+        }
 		//if ((mx==hx)&&(my==hy)&&(gotCheese)) newReward += 100;
 		return newReward;		
 	}
@@ -168,7 +178,7 @@ public class CatAndMouseWorld implements RLWorld{
 	}
 
 	boolean legal(int x, int y) {
-		return ((x>=0) && (x<bx) && (y>=0) && (y<by)) && (!walls[x][y]);
+		return ((x>=0) && (x<bx) && (y>=0) && (y<by));
 	}
 
 	boolean endGame() {
@@ -207,7 +217,7 @@ public class CatAndMouseWorld implements RLWorld{
 			ay += 1-(int) (Math.random()*3);
 			
 			//System.out.println("old:"+x+","+y+" try:"+ax+","+ay);
-			if (legal(ax,ay)) return new Dimension(ax,ay);
+			if (legal(ax,ay) && !walls[ax][ay]) return new Dimension(ax,ay);
 		}
 	}
 
