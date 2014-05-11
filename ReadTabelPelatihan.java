@@ -4,7 +4,7 @@ import java.FileReader;
 import java.io.BufferedReader;
 import java.util.*;
 
-public Class Text {
+public Class ReadTabelPelatihan {
 	public static void main(String[] args){
 		Scanner S = new Scanner(new File("tabelpelatihan.txt"));
 		int lihat, keju, kucing;
@@ -32,15 +32,8 @@ public Class Text {
 				String[] temp4 = temp3.substring(1, temp3.length-1).split(",");
 				point1[j] = temp4[j];
 			}
-
-
-
 		}
 		file.close;		
 		}
 		catch (FileNotFoundException e){}
 }
-
-// if (line.charAt(i) == '<' || line.charAt(i) == '>')
-
-(2 1)
