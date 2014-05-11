@@ -190,7 +190,7 @@ public class CatAndMouseWorld implements RLWorld{
 		int nx, ny;
 		nx = (int)(Math.random() * bx);
 		ny = (int)(Math.random() * by);
-		for(int trials=0; (!legal(nx,ny)) && (trials < WALL_TRIALS); trials++){
+		for(int trials=0; (!legal(nx,ny) || walls[nx][ny]) && (trials < WALL_TRIALS); trials++){
 			nx = (int)(Math.random() * bx);
 			ny = (int)(Math.random() * by);
 		}
@@ -207,7 +207,7 @@ public class CatAndMouseWorld implements RLWorld{
  		else ay += (ty - y)/Math.abs(ty-y); // +/- 1 or 0
 		
 		// check if move legal	
-		if (legal(ax, ay)) return new Dimension(ax, ay);
+		if (legal(ax, ay)&& !walls[ax][ay]) return new Dimension(ax, ay);
 		
 		// not legal, make random move
 		while(true) {
