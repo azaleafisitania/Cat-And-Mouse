@@ -1,7 +1,7 @@
 Cat-And-Mouse
 =============
 state
-<array of halangan>
+[array of halangan]
 
 tipe halangan
 0 - wall
